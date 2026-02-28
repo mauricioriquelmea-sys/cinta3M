@@ -70,7 +70,7 @@ st.markdown(f"""
 
 c1, c2 = st.columns(2)
 with c1:
-    st.metric("Ancho Calculado (Viento)", f"{ancho_viento_mm:.2f} mm")
+    st.metric("Ancho Minimo Sugerido (Tracción/Succión Viento)", f"{ancho_viento_mm:.2f} mm")
 with c2:
     st.metric("Esfuerzo Adm. (Dinámico)", "12 psi", delta="8,437 kgf/m²")
 
