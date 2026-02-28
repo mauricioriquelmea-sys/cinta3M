@@ -17,6 +17,7 @@ st.markdown("""
     .result-box { 
         background-color: #fff4f4; 
         padding: 25px; 
+        border: 1px solid #ffcccc;
         border-left: 10px solid #cc0000; 
         border-radius: 8px; 
     }
@@ -32,11 +33,11 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 st.title("🔴 VHB™ Structural Design Lab")
-st.markdown("#### **Cálculo de Bite: Tracción Dinámica y Cizalladura Estática**")
+st.markdown("#### **Verificación de Bite: Tracción Dinámica y Cizalladura Estática**")
 st.divider()
 
 # =================================================================
-# 2. SIDEBAR: PARÁMETROS TÉCNICOS
+# 2. SIDEBAR: PARÁMETROS TÉCNICOS RIGUROSOS
 # =================================================================
 st.sidebar.header("⚙️ Parámetros de Diseño")
 
@@ -48,15 +49,15 @@ with st.sidebar.expander("📐 Geometría del Panel", expanded=True):
 
 with st.sidebar.expander("🌪️ Cargas y Seguridad", expanded=True):
     p_viento = st.number_input("Presión de Diseño (kgf/m²)", value=150.0, step=5.0)
-    usa_calzos = st.checkbox("¿Usa calzos de apoyo?", value=True)
+    usa_calzos = st.checkbox("¿Usa calzos de apoyo?", value=True, help="Si se desmarca, la cinta absorbe el peso propio permanentemente.")
     
-    # Valores de diseño 3M (Boletín Técnico 2009/2010)
-    adm_viento_kgm2 = 8435  # 12 psi
-    adm_peso_kgm2 = 173.5   # 0.25 psi (60 cm2/kg)
+    # Valores de diseño según Boletín Técnico 3M (12 psi dinámico / 0.25 psi estático)
+    adm_viento_kgm2 = 8435  
+    adm_peso_kgm2 = 173.5   
     ancho_minimo_3m = 15.0
 
 # =================================================================
-# 3. MOTOR DE CÁLCULO DUAL
+# 3. MOTOR DE CÁLCULO
 # =================================================================
 
 # A. Peso del Vidrio
@@ -72,8 +73,9 @@ if not usa_calzos:
 else:
     ancho_peso_mm = 0.0
 
-# Ancho Final (Gobernado por el mayor de los tres)
-ancho_final = max(math.ceil(ancho_viento_mm), math.ceil(ancho_peso_mm), ancho_minimo_3m)
+# Ancho Final: Mayor de los tres criterios
+ancho_calculado = max(ancho_viento_mm, ancho_peso_mm, ancho_minimo_3m)
+ancho_final = math.ceil(ancho_calculado)
 
 # =================================================================
 # 4. DESPLIEGUE DE RESULTADOS
@@ -84,60 +86,65 @@ st.markdown(f"""
 <div class="weight-box">
     <p style="margin:5px 0; color:#555;">Masa del Panel: <strong>{peso_vidrio:.2f} kgf</strong></p>
     <p style="font-size: 1.1em; margin:0; color:{'#28a745' if usa_calzos else '#cc0000'}; font-weight:bold;">
-        {'✅ Peso sobre CALZOS' if usa_calzos else '⚠️ CIZALLADURA PERMANENTE SOBRE CINTA'}
+        {'✅ Carga muerta soportada por CALZOS' if usa_calzos else '⚠️ CIZALLADURA PERMANENTE SOBRE CINTA'}
     </p>
 </div>
 """, unsafe_allow_html=True)
 
 c1, c2, c3 = st.columns(3)
 with c1:
-    st.metric("Bite Viento (12 psi)", f"{ancho_viento_mm:.2f} mm")
+    st.metric("Bite por Viento", f"{ancho_viento_mm:.2f} mm")
 with c2:
-    st.metric("Bite Peso (0.25 psi)", f"{ancho_peso_mm:.2f} mm" if not usa_calzos else "N/A")
+    st.metric("Bite por Peso", f"{ancho_peso_mm:.2f} mm" if not usa_calzos else "0.00 mm")
 with c3:
-    st.metric("Mínimo Constructivo", f"{ancho_minimo_3m} mm")
+    st.metric("Esfuerzo Adm. (Viento)", "12 psi")
 
-st.markdown("### 🔍 Esquema de Detalle Técnico")
+st.divider()
+
+# --- SECCIÓN DE ESQUEMA Y ESPECIFICACIÓN ---
 col_fig, col_txt = st.columns([1, 1.2])
 
 with col_fig:
-    # REPOSICIÓN DEL ESQUEMA
+    st.markdown("### 🔍 Detalle del Bite")
     if os.path.exists("cinta.png"):
-        st.image("cinta.png", caption="Detalle de Bite (Bondline Width)", use_column_width=True)
+        st.image("cinta.png", caption="Nomenclatura: Bondline Width (Bite)", use_column_width=True)
     else:
+        st.info("💡 Sube 'cinta.png' para ver el esquema técnico.")
         
-        st.info("💡 Sube 'cinta.png' para ver el detalle de la junta.")
 
 with col_txt:
     st.markdown(f"""
     <div class="result-box">
-        <h3 style="margin-top:0;">✅ Especificación Final:</h3>
-        <p style="font-size: 1.8em; margin-bottom:10px; font-weight:bold;">
-            Ancho Sugerido: <span style="color: #cc0000;">{ancho_final} mm</span>
+        <h3 style="margin-top:0; color:#cc0000;">✅ Especificación Final:</h3>
+        <p style="font-size: 2em; margin-bottom:10px; font-weight:bold;">
+            {ancho_final} mm
         </p>
         <hr>
-        <strong>Resumen de Verificación:</strong>
+        <strong>Notas Técnicas de Seguridad:</strong>
         <ul>
-            <li>Criterio Dominante: {'Viento' if ancho_viento_mm > ancho_peso_mm else 'Cizalle por Peso'}.</li>
-            <li>Capacidad Dinámica: 8,435 kgf/m².</li>
-            <li>Capacidad Estática: 173.5 kgf/m² (60 cm²/kg).</li>
+            <li>Gobernado por: <strong>{'Viento (Dinámico)' if ancho_viento_mm > ancho_peso_mm else 'Peso (Estático)'}</strong>.</li>
+            <li>Capacidad Estática considerada: 1.7 kPa (0.25 psi).</li>
+            <li>{"Uso de calzos obligatorio." if usa_calzos else "Diseño apto para cizalladura permanente."}</li>
+            <li>Se recomienda limpieza con Isopropanol/Agua (50:50) e imprimación según sustrato.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
 
+if not usa_calzos:
+    st.error("❗ **Nota sobre Cizalle:** El diseño sin calzos requiere validación directa de 3M para garantizar la adhesión a largo plazo bajo carga muerta.")
+
 # =================================================================
 # 5. GRÁFICO DE SENSIBILIDAD
 # =================================================================
-st.subheader("📈 Sensibilidad: Bite vs Presión de Viento")
-
-p_range = np.linspace(50, 450, 40)
+st.subheader("📈 Sensibilidad del Diseño")
+p_range = np.linspace(50, 500, 50)
 w_v_range = [(p * lado_menor) / (2 * adm_viento_kgm2) * 1000 for p in p_range]
 
 fig, ax = plt.subplots(figsize=(10, 4))
 ax.plot(p_range, w_v_range, color='#cc0000', lw=2, label='Requerido por Viento')
 if not usa_calzos:
     ax.axhline(ancho_peso_mm, color='#333', ls='--', label='Requerido por Peso')
-ax.axhline(ancho_minimo_3m, color='gray', ls=':', label='Mínimo 3M')
+ax.axhline(ancho_minimo_3m, color='gray', ls=':', label='Mínimo 3M (15mm)')
 
 ax.set_xlabel("Presión de Diseño (kgf/m²)")
 ax.set_ylabel("Ancho de Cinta (mm)")
@@ -149,8 +156,8 @@ st.pyplot(fig)
 # =================================================================
 st.markdown("---")
 st.markdown(f"""
-    <div style="text-align: center; color: #666;">
-        <strong>{ancho_p}m x {alto_p}m | Proyectos Estructurales EIRL</strong><br>
-        <span style="font-style: italic; font-size: 1.2em; color: #003366;">"Programming is understanding"</span>
+    <div style="text-align: center; color: #666; font-size: 0.9em;">
+        <strong>Mauricio Riquelme | Proyectos Estructurales EIRL</strong><br>
+        <em>"Programming is understanding"</em>
     </div>
 """, unsafe_allow_html=True)
