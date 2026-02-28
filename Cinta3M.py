@@ -3,116 +3,96 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import os
 
-# =================================================================
-# 1. CONFIGURACIÓN Y ESTILO (WIDE)
-# =================================================================
-st.set_page_config(page_title="Cálculo VHB Viento | Mauricio Riquelme", layout="wide")
+# 1. CONFIGURACIÓN
+st.set_page_config(page_title="Cálculo VHB | Mauricio Riquelme", layout="wide")
 
 st.markdown("""
     <style>
     .main > div { padding-left: 2.5rem; padding-right: 2.5rem; max-width: 100%; }
     .stMetric { background-color: #f8f9fa; padding: 15px; border-radius: 10px; border: 1px solid #dee2e6; }
     .result-box { background-color: #fff4f4; padding: 25px; border-left: 8px solid #cc0000; border-radius: 8px; margin: 20px 0; }
+    .weight-box { background-color: #ffffff; padding: 15px; border: 1px dashed #cc0000; border-radius: 8px; margin-bottom: 20px; text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
-# =================================================================
-# 2. ENCABEZADO
-# =================================================================
 st.title("🔴 Diseño de Unión con Cinta 3M™ VHB™")
-st.markdown("#### **Cálculo del Ancho de Cinta para Carga de Viento**")
+st.markdown("#### **Ancho de Cinta (Bondline) según Carga de Viento y Dilatación**")
 st.divider()
 
-# =================================================================
-# 3. SIDEBAR: PARÁMETROS DE DISEÑO
-# =================================================================
+# 3. SIDEBAR
 st.sidebar.header("⚙️ Parámetros de Diseño")
 
-with st.sidebar.expander("📐 Geometría del Panel", expanded=True):
+with st.sidebar.expander("📐 Geometría y Masa", expanded=True):
     ancho_p = st.number_input("Ancho del Panel (m)", value=1.20, step=0.05)
     alto_p = st.number_input("Alto del Panel (m)", value=2.40, step=0.05)
-    # El lado menor gobierna la transferencia de carga tributaria
+    t_vidrio = st.number_input("Espesor Vidrio (mm)", value=6.0, step=1.0)
     lado_menor = min(ancho_p, alto_p)
+    lado_mayor = max(ancho_p, alto_p)
 
-with st.sidebar.expander("🌪️ Carga de Viento y Seguridad", expanded=True):
+with st.sidebar.expander("🌪️ Viento y Térmico", expanded=True):
     p_viento = st.number_input("Presión de Diseño (kgf/m²)", value=150.0)
-    
-    # Factor de Seguridad (FS) constante = 5
-    FS_FIJO = 5.0
-    st.markdown(f"**Factor de Seguridad (FS):** `{FS_FIJO}`")
-    
-    # Capacidad última nominal de tracción dinámica VHB (aprox. 50 psi)
-    capacidad_ultima_kgm2 = 35150  
-    
-    # Esfuerzo admisible dinámico
-    adm_dinamico = capacidad_ultima_kgm2 / FS_FIJO
-    st.info(f"Esfuerzo Adm. Dinámico: {adm_dinamico:.0f} kgf/m²")
+    delta_T = st.slider("Diferencial Térmico ΔT (°C)", 10, 80, 50)
+    gt_cinta = st.selectbox("Espesor Cinta VHB (mm)", [1.1, 1.6, 2.3], index=1)
 
-# =================================================================
-# 4. MOTOR DE CÁLCULO RIGUROSO
-# =================================================================
+# 4. MOTOR DE CÁLCULO
+# A. Peso del Vidrio
+peso_vidrio = (ancho_p * alto_p * (t_vidrio/1000)) * 2500
 
-# Cálculo del ancho de cinta (Bondline Width) en mm
-# Fórmula: (Presion [kgf/m2] * Lado_Menor [m]) / (2 * Adm_Dinamico [kgf/m2]) * 1000 [mm/m]
-ancho_cinta_calculado_mm = (p_viento * lado_menor) / (2 * adm_dinamico) * 1000
+# B. Ancho por Viento (Bondline Width)
+# Capacidad dinámica 3M: 85,000 Pa / FS 5 ≈ 1,734 kgf/m2 (aprox 12 psi admisible)
+adm_dinamico = 1734 
+ancho_viento_mm = (p_viento * lado_menor) / (2 * adm_dinamico) * 1000
 
-# Mínimo recomendado por 3M para aplicaciones de fachada estructural
-ancho_minimo_3m = 15.0
-ancho_final = max(math.ceil(ancho_cinta_calculado_mm), ancho_minimo_3m)
+# C. Ancho por Dilatación Térmica (Regla del 15% de 3M)
+# ΔL = L * Δα * ΔT. La cinta debe ser al menos 6.7 veces el ΔL (para no superar 15% deformación)
+delta_L = (lado_mayor * 1000) * abs(23.2e-6 - 9.0e-6) * delta_T
+ancho_termico_mm = delta_L / 0.15 
 
-# =================================================================
-# 5. DESPLIEGUE DE RESULTADOS CON FIGURA EXPLICATIVA (NUEVO)
-# =================================================================
+# Ancho Final
+ancho_final = max(math.ceil(ancho_viento_mm), math.ceil(ancho_termico_mm), 15)
+
+# 5. RESULTADOS
 st.subheader("📊 Resultados de Análisis Estructural")
 
-# Bloque de Masa del Vidrio (se mantiene igual)
 st.markdown(f"""
 <div class="weight-box">
-    <p style="margin:5px 0; color:#555;">Peso Total del Vidrio: <strong>{peso_vidrio:.2f} kgf</strong></p>
+    <p style="margin:5px 0; color:#555;">Peso Total del Panel: <strong>{peso_vidrio:.2f} kgf</strong></p>
     <p style="font-size: 1.1em; margin:0; color:#28a745; font-weight:bold;">✅ Peso soportado por CALZOS (Setting Blocks)</p>
 </div>
 """, unsafe_allow_html=True)
 
-# Métricas de Ancho Mínimo de Cinta (se mantienen igual)
-c1, c2 = st.columns(2)
+c1, c2, c3 = st.columns(3)
 with c1:
-    st.metric("Ancho (Viento)", f"{ancho_viento_mm:.2f} mm", help="Ancho de cinta requerido para resistir cargas de viento.")
+    st.metric("Ancho (Viento)", f"{ancho_viento_mm:.2f} mm")
 with c2:
-    st.metric("Ancho (Térmico)", f"{ancho_termico_mm:.2f} mm", help="Ancho de cinta requerido para absorber dilatación térmica.")
+    st.metric("Ancho (Térmico)", f"{ancho_termico_mm:.2f} mm")
+with c3:
+    st.metric("Espesor (gt)", f"{gt_cinta} mm")
 
-# --- NUEVA SECCIÓN: FIGURA EXPLICATIVA Y ESPECIFICACIÓN TÉCNICA ---
 st.markdown("### 🔍 Detalles de la Junta de Cinta")
 col_fig, col_txt = st.columns([1, 1])
 
 with col_fig:
-    # Intenta cargar la imagen explicativa si existe
-    esquema_cinta = "cinta.png" # Asegúrate de que este archivo esté en tu GitHub
-    if os.path.exists(esquema_cinta):
-        st.image(esquema_cinta, caption="Nomenclatura Cinta VHB™", use_column_width=True)
+    if os.path.exists("cinta.png"):
+        st.image("cinta.png", caption="Nomenclatura Cinta VHB™", use_column_width=True)
     else:
-        # Diagrama de referencia técnica si no hay imagen
-        st.info("💡 **Esquema Técnico:**\n\n"
-                "1. **Structural Bite:** Superficie de contacto de la cinta con el vidrio.\n"
-                "2. **Glueline Thickness:** Espesor de la cinta VHB™ (constante).\n"
-                "3. **Sustratos:** Vidrio y marco de aluminio.")
+        st.info("💡 Sube 'cinta.png' para ver el esquema técnico.")
 
 with col_txt:
-    ancho_final_cinta = max(math.ceil(ancho_viento_mm), math.ceil(ancho_termico_mm), 6) # Mínimo constructivo 6mm
-
     st.markdown(f"""
     <div class="result-box" style="margin-top:0;">
-        <h3 style="margin-top:0;">✅ Especificación de Cinta Final:</h3>
-        <p style="font-size: 1.4em; margin-bottom:10px;">
-            <strong>Ancho Mínimo:</strong> <span style="color: #003366;">{ancho_final_cinta} mm</span><br>
-            <strong>Espesor de Cinta:</strong> <span style="color: #d9534f;">{gt_cinta} mm</span>
+        <h3 style="margin-top:0;">✅ Especificación Final:</h3>
+        <p style="font-size: 1.4em;">
+            <strong>Ancho de Cinta:</strong> <span style="color: #cc0000;">{ancho_final} mm</span><br>
+            <strong>Modelo Sugerido:</strong> <span style="color: #003366;">VHB™ G23F o similar</span>
         </p>
         <hr>
-        <strong>Resumen Técnico:</strong>
+        <strong>Resumen:</strong>
         <ul>
-            <li>Factor de Seguridad (FS): {fs_viento} para viento.</li>
-            <li>Glueline gobernado por: {'Viento' if ancho_viento_mm > ancho_termico_mm else 'Dilatación Térmica'}.</li>
-            <li>Uso obligatorio de setting blocks.</li>
+            <li>Gobernado por: {'Viento' if ancho_viento_mm > ancho_termico_mm else 'Dilatación Térmica'}.</li>
+            <li>Factor de Seguridad Dinámico: 5.0</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
