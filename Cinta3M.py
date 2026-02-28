@@ -72,7 +72,7 @@ with c1:
 with c2:
     st.metric("Ancho Calculado", f"{ancho_cinta_calculado_mm:.2f} mm")
 with c3:
-    st.metric("Ancho de Cinta Sugerido", f"{ancho_final} mm")
+    st.metric("Ancho Mínimo de Cinta Sugerido", f"{ancho_final} mm")
 
 
 
