@@ -20,6 +20,7 @@ st.markdown("""
         border: 1px solid #ffcccc;
         border-left: 10px solid #cc0000; 
         border-radius: 8px; 
+        margin: 20px 0;
     }
     .weight-box { 
         background-color: #ffffff; 
@@ -37,7 +38,7 @@ st.markdown("#### **Verificación de Bite según Estándares Técnicos 3M (kPa)*
 st.divider()
 
 # =================================================================
-# 2. SIDEBAR: PARÁMETROS TÉCNICOS ESTRICTOS
+# 2. SIDEBAR: PARÁMETROS TÉCNICOS Y SEGURIDAD
 # =================================================================
 st.sidebar.header("⚙️ Parámetros de Diseño")
 
@@ -47,20 +48,26 @@ with st.sidebar.expander("📐 Geometría del Panel", expanded=True):
     t_vidrio = st.number_input("Espesor Vidrio (mm)", value=6.0, step=1.0)
     lado_menor = min(ancho_p, alto_p)
 
-with st.sidebar.expander("🌪️ Cargas y Seguridad", expanded=True):
+with st.sidebar.expander("🌪️ Cargas y Factores de Seguridad", expanded=True):
     p_viento = st.number_input("Presión de Diseño (kgf/m²)", value=150.0, step=5.0)
     usa_calzos = st.checkbox("¿Usa calzos de apoyo?", value=True)
     
-    # VALORES ESTRICTOS 3M (Boletín Técnico)
-    # 1 kPa = 101.97 kgf/m2
+    st.markdown("---")
+    # INFORMACIÓN DE FACTORES DE SEGURIDAD (FS)
+    st.markdown("**Factores de Seguridad (FS) 3M:**")
+    st.info("""
+    * **Dinámico (Viento):** FS = 5.0
+    * **Estático (Peso):** FS = 10.0
+    """)
     
+    # VALORES ESTRICTOS 3M
     # Dinámico (Viento)
-    adm_viento_kpa = 85.0  # Valor nominal 3M
-    adm_viento_kgm2 = 85.0 * 101.97  # 8667.45 kgf/m2
+    adm_viento_kpa = 85.0  # Incluye FS=5
+    adm_viento_kgm2 = 85.0 * 101.97  # Conv. kPa a kgf/m2
     
     # Estático (Peso/Cizalle)
-    adm_peso_kpa = 1.7  # Valor nominal 3M
-    adm_peso_kgm2 = 1.7 * 101.97  # 173.35 kgf/m2
+    adm_peso_kpa = 1.7  # Incluye FS=10
+    adm_peso_kgm2 = 1.7 * 101.97
     
     ancho_minimo_3m = 15.0
 
@@ -103,9 +110,9 @@ c1, c2, c3 = st.columns(3)
 with c1:
     st.metric("Bite Requerido", f"{ancho_final} mm")
 with c2:
-    st.metric("Esfuerzo Adm. Viento", f"{adm_viento_kpa} kPa", "≈ 12.0 psi")
+    st.metric("Esfuerzo Adm. Viento", f"{adm_viento_kpa} kPa", "≈ 12.0 psi (FS=5)")
 with c3:
-    st.metric("Esfuerzo Adm. Peso", f"{adm_peso_kpa} kPa", "≈ 0.25 psi")
+    st.metric("Esfuerzo Adm. Peso", f"{adm_peso_kpa} kPa", "≈ 0.25 psi (FS=10)")
 
 st.divider()
 
@@ -130,8 +137,8 @@ with col_txt:
         <strong>Resumen Técnico Estricto:</strong>
         <ul>
             <li>Criterio Dominante: <strong>{'Viento (Dinámico)' if ancho_viento_mm > ancho_peso_mm else 'Peso (Estático)'}</strong>.</li>
-            <li>Esfuerzo Adm. Viento: 85.0 kPa (≈ 12.0 psi).</li>
-            <li>Esfuerzo Adm. Peso: 1.7 kPa (≈ 0.25 psi).</li>
+            <li>Esfuerzo Adm. Viento: 85.0 kPa (FS=5).</li>
+            <li>Esfuerzo Adm. Peso: 1.7 kPa (FS=10).</li>
             <li>{"Uso de calzos obligatorio." if usa_calzos else "Apto para cizalladura permanente."}</li>
         </ul>
     </div>
