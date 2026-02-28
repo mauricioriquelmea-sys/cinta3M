@@ -52,14 +52,14 @@ with st.sidebar.expander("🌪️ Cargas y Seguridad", expanded=True):
     usa_calzos = st.checkbox("¿Usa calzos de apoyo?", value=True)
     
     # Valores de diseño según Boletín Técnico 3M
-    # Dinámico: 12 psi ≈ 0.0827 MPa ≈ 8435 kgf/m2
+    # Dinámico: 12 psi ≈ 82.7 kPa ≈ 8435 kgf/m2
     adm_viento_psi = 12.0
-    adm_viento_mpa = 0.0827
+    adm_viento_kpa = 82.7
     adm_viento_kgm2 = 8435  
 
-    # Estático: 0.25 psi ≈ 0.0017 MPa ≈ 173.5 kgf/m2
+    # Estático: 0.25 psi ≈ 1.72 kPa ≈ 173.5 kgf/m2
     adm_peso_psi = 0.25
-    adm_peso_mpa = 0.0017
+    adm_peso_kpa = 1.72
     adm_peso_kgm2 = 173.5   
     
     ancho_minimo_3m = 15.0
@@ -103,9 +103,9 @@ c1, c2, c3 = st.columns(3)
 with c1:
     st.metric("Bite Requerido", f"{ancho_final} mm")
 with c2:
-    st.metric("Esfuerzo Adm. Viento", f"{adm_viento_psi} psi", f"{adm_viento_mpa} MPa")
+    st.metric("Esfuerzo Adm. Viento", f"{adm_viento_psi} psi", f"{adm_viento_kpa} kPa")
 with c3:
-    st.metric("Esfuerzo Adm. Peso", f"{adm_peso_psi} psi", f"{adm_peso_mpa} MPa")
+    st.metric("Esfuerzo Adm. Peso", f"{adm_peso_psi} psi", f"{adm_peso_kpa} kPa")
 
 st.divider()
 
@@ -118,7 +118,6 @@ with col_fig:
         st.image("cinta.png", caption="Bondline Width (Bite) - Detalle Típico", use_column_width=True)
     else:
         st.info("💡 Sube 'cinta.png' para ver el esquema técnico.")
-        
 
 with col_txt:
     st.markdown(f"""
@@ -131,8 +130,8 @@ with col_txt:
         <strong>Resumen de Verificación Técnica:</strong>
         <ul>
             <li>Criterio Dominante: <strong>{'Viento (Dinámico)' if ancho_viento_mm > ancho_peso_mm else 'Peso (Estático)'}</strong>.</li>
-            <li>Tensión Adm. Dinámica: {adm_viento_psi} psi ({adm_viento_mpa} MPa).</li>
-            <li>Tensión Adm. Estática: {adm_peso_psi} psi ({adm_peso_mpa} MPa).</li>
+            <li>Tensión Adm. Dinámica: {adm_viento_psi} psi ({adm_viento_kpa} kPa).</li>
+            <li>Tensión Adm. Estática: {adm_peso_psi} psi ({adm_peso_kpa} kPa).</li>
             <li>{"Uso de calzos obligatorio." if usa_calzos else "Diseño apto para cizalladura permanente."}</li>
             <li>Se recomienda limpieza con Isopropanol/Agua (50:50).</li>
         </ul>
