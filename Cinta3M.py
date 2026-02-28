@@ -41,6 +41,22 @@ with st.sidebar.expander("🌪️ Carga de Viento", expanded=True):
     # 8500 kgf/m2 es el valor típico de diseño dinámico para VHB (aprox 12 psi)
     adm_dinamico = st.number_input("Esfuerzo Adm. Dinámico (kgf/m²)", value=8500)
 
+# --- CARGA DE VIENTO Y SEGURIDAD (FS FIJO) ---
+with st.sidebar.expander("🌪️ Carga de Viento y Seguridad", expanded=True):
+    p_viento = st.number_input("Presión de Diseño (kgf/m²)", value=150.0)
+    
+    # Definición del Factor de Seguridad como constante no editable
+    FS_FIJO = 5.0
+    st.markdown(f"**Factor de Seguridad (FS):** `{FS_FIJO}` (Valor fijo)")
+    
+    # Capacidad última nominal de la cinta VHB (aprox. 50 psi)
+    capacidad_ultima = 35150  # kgf/m²
+    
+    # Cálculo automático del esfuerzo admisible basado en el FS=5
+    adm_dinamico = capacidad_ultima / FS_FIJO
+    
+    st.info(f"Esfuerzo Adm. Dinámico: {adm_dinamico:.0f} kgf/m²")
+
 # =================================================================
 # 4. MOTOR DE CÁLCULO (SÓLO VIENTO)
 # =================================================================
