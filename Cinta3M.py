@@ -3,98 +3,112 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-import base64
 import os
+import base64
 
-st.set_page_config(page_title="Diseño Cinta 3M VHB | Mauricio Riquelme", layout="wide")
+# =================================================================
+# 1. CONFIGURACIÓN Y ESTILO (WIDE)
+# =================================================================
+st.set_page_config(page_title="Cálculo VHB Viento | Mauricio Riquelme", layout="wide")
 
-# Estilo Estructural
 st.markdown("""
     <style>
-    .main > div { padding-left: 2.5rem; padding-right: 2.5rem; }
+    .main > div { padding-left: 2.5rem; padding-right: 2.5rem; max-width: 100%; }
     .stMetric { background-color: #f8f9fa; padding: 15px; border-radius: 10px; border: 1px solid #dee2e6; }
     .result-box { background-color: #fff4f4; padding: 25px; border-left: 8px solid #cc0000; border-radius: 8px; margin: 20px 0; }
     </style>
     """, unsafe_allow_html=True)
 
-# Encabezado
+# =================================================================
+# 2. ENCABEZADO
+# =================================================================
 st.title("🔴 Diseño de Unión con Cinta 3M™ VHB™")
-st.markdown("#### **Metodología de Cálculo según Guía Técnica de 3M para Fachadas**")
+st.markdown("#### **Verificación por Carga Dinámica (Viento)**")
 st.divider()
 
-# --- SIDEBAR ---
+# =================================================================
+# 3. SIDEBAR: PARÁMETROS DE VIENTO
+# =================================================================
 st.sidebar.header("⚙️ Parámetros de Diseño")
+
 with st.sidebar.expander("📐 Geometría del Panel", expanded=True):
-    ancho = st.number_input("Ancho del Vidrio/Panel (m)", value=1.20, step=0.05)
-    alto = st.number_input("Alto del Vidrio/Panel (m)", value=2.40, step=0.05)
-    t_panel = st.number_input("Espesor del Panel (mm)", value=6.0, step=1.0)
-    densidad = st.number_input("Densidad Material (kg/m³)", value=2500, help="Vidrio: 2500, Aluminio: 2700")
+    ancho = st.number_input("Ancho del Panel (m)", value=1.20, step=0.05)
+    alto = st.number_input("Alto del Panel (m)", value=2.40, step=0.05)
+    lado_menor = min(ancho, alto)
 
-with st.sidebar.expander("🌪️ Cargas y Propiedades VHB", expanded=True):
+with st.sidebar.expander("🌪️ Carga de Viento", expanded=True):
     p_viento = st.number_input("Presión de Diseño (kgf/m²)", value=150.0)
-    # Valores típicos de diseño 3M (con factor de seguridad incluido)
-    adm_dinamico = 8500  # kgf/m² (aprox 12 psi para ráfagas)
-    adm_estatico = 175   # kgf/m² (aprox 0.25 psi para peso muerto)
-    delta_T = st.slider("Diferencial Térmico ΔT (°C)", 10, 80, 50)
+    # 8500 kgf/m2 es el valor típico de diseño dinámico para VHB (aprox 12 psi)
+    adm_dinamico = st.number_input("Esfuerzo Adm. Dinámico (kgf/m²)", value=8500)
 
-# --- CÁLCULOS ---
-# 1. Peso Propio
-peso_kg = ancho * alto * (t_panel/1000) * densidad
+# =================================================================
+# 4. MOTOR DE CÁLCULO (SÓLO VIENTO)
+# =================================================================
 
-# 2. Área Requerida por Viento (Dinámico)
-# Ancho de cinta = (Presión * Lado Menor) / (2 * Esfuerzo Admisible)
-area_viento_mm = (p_viento * min(ancho, alto)) / (2 * adm_dinamico / 10000) * 10 
+# Cálculo del ancho de cinta necesario (mm)
+# Basado en la transferencia de carga por el lado corto del panel
+ancho_cinta_mm = (p_viento * lado_menor) / (2 * adm_dinamico / 10000) * 10 
 
-# 3. Área Requerida por Peso (Estatico) - Basado en 3M (0.25 psi / 175 kg/m2)
-# Se requiere 55 cm2 de cinta por cada kg de peso para carga permanente
-area_peso_total_cm2 = peso_kg / (adm_estatico / 10000)
-perimetro_m = 2 * (ancho + alto)
-ancho_cinta_peso_mm = (area_peso_total_cm2 / (perimetro_m * 100)) * 10
+# Aplicación del mínimo constructivo recomendado por 3M
+ancho_final = max(math.ceil(ancho_cinta_mm), 15)
 
-# 4. Expansión Térmica (Límite de espesor de cinta)
-# La cinta debe ser al menos 2 veces el movimiento diferencial
-mov_termico = max(ancho, alto) * 1000 * abs(23.2e-6 - 9.0e-6) * delta_T
-espesor_min_cinta = mov_termico * 2
+# =================================================================
+# 5. RESULTADOS
+# =================================================================
+st.subheader("📊 Resultados de Análisis Dinámico")
 
-# --- RESULTADOS ---
-st.subheader("📊 Resultados de Análisis")
-c1, c2, c3 = st.columns(3)
+c1, c2 = st.columns(2)
 with c1:
-    st.metric("Peso del Panel", f"{peso_kg:.2f} kgf")
+    st.metric("Ancho Calculado (Viento)", f"{ancho_cinta_mm:.2f} mm")
 with c2:
-    st.metric("Ancho por Viento", f"{area_viento_mm:.2f} mm")
-with c3:
-    st.metric("Espesor Mín. Cinta", f"{espesor_min_cinta:.2f} mm")
-
-ancho_final = max(math.ceil(area_viento_mm), math.ceil(ancho_cinta_peso_mm), 15) # Mínimo 15mm por aplicación
+    st.metric("Especificación Sugerida", f"{ancho_final} mm")
 
 
 
 st.markdown(f"""
 <div class="result-box">
     <h3>✅ Especificación de Cinta VHB:</h3>
-    <p style="font-size: 1.2em;">
-        <strong>Ancho de Cinta Requerido:</strong> {ancho_final} mm<br>
-        <strong>Espesor Recomendado:</strong> > {espesor_min_cinta:.2f} mm (Usar 2.3mm o superior)
+    <p style="font-size: 1.25em;">
+        <strong>Ancho de Cinta Requerido:</strong> {ancho_final} mm
     </p>
     <hr>
-    <strong>Nota Técnica 3M:</strong> El ancho de cinta por peso propio es crítico en paneles sin apoyo mecánico inferior. 
-    Se recomienda siempre el uso de soportes de carga (setting blocks).
+    <strong>Nota Técnica:</strong> 
+    <ul>
+        <li>Este cálculo solo considera la resistencia a la succión del viento (Carga Dinámica).</li>
+        <li>Se asume que el panel cuenta con apoyos mecánicos (setting blocks) para soportar el peso propio.</li>
+        <li>El ancho mínimo recomendado por 3M para aplicaciones estructurales es de 15 mm.</li>
+    </ul>
 </div>
 """, unsafe_allow_html=True)
 
-# --- GRÁFICO ---
-st.subheader("📈 Sensibilidad: Ancho de Cinta vs Viento")
-p_rango = np.linspace(50, 400, 20)
-b_rango = [(p * min(ancho, alto)) / (2 * adm_dinamico / 10000) * 10 for p in p_rango]
+# =================================================================
+# 6. GRÁFICO DE SENSIBILIDAD
+# =================================================================
+st.subheader("📈 Sensibilidad: Ancho de Cinta vs Presión de Viento")
 
-fig, ax = plt.subplots(figsize=(10, 4))
-ax.plot(p_rango, b_rango, color='#cc0000', label='Ancho requerido (Viento)')
-ax.axhline(15, color='black', ls='--', label='Mínimo constructivo (15mm)')
-ax.set_xlabel("Presión (kgf/m²)")
-ax.set_ylabel("Ancho Cinta (mm)")
+p_rango = np.linspace(50, 450, 30)
+b_rango = [(p * lado_menor) / (2 * adm_dinamico / 10000) * 10 for p in p_rango]
+
+fig, ax = plt.subplots(figsize=(12, 5))
+ax.plot(p_rango, b_rango, color='#cc0000', lw=2.5, label='Ancho por Viento')
+ax.axhline(15, color='black', ls='--', label='Mínimo Constructivo (15mm)')
+ax.fill_between(p_rango, b_rango, 15, where=(np.array(b_rango) > 15), color='#cc0000', alpha=0.1)
+
+ax.set_xlabel("Presión de Diseño (kgf/m²)")
+ax.set_ylabel("Ancho de Cinta (mm)")
+ax.grid(True, alpha=0.3, ls='--')
 ax.legend()
 st.pyplot(fig)
 
+# =================================================================
+# 7. CRÉDITOS
+# =================================================================
 st.markdown("---")
-st.markdown('<p style="text-align: center; font-style: italic;">"Programming is understanding"</p>', unsafe_allow_html=True)
+st.markdown(f"""
+    <div style="text-align: center; margin-top: 20px;">
+        <p style="font-family: 'Georgia', serif; font-size: 1.4em; color: #003366; font-style: italic;">
+            "Programming is understanding"
+        </p>
+        <p style="font-size: 0.9em; color: #666;">Mauricio Riquelme | Proyectos Estructurales EIRL</p>
+    </div>
+""", unsafe_allow_html=True)
