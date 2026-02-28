@@ -62,35 +62,61 @@ ancho_minimo_3m = 15.0
 ancho_final = max(math.ceil(ancho_cinta_calculado_mm), ancho_minimo_3m)
 
 # =================================================================
-# 5. RESULTADOS
+# 5. DESPLIEGUE DE RESULTADOS CON FIGURA EXPLICATIVA (NUEVO)
 # =================================================================
-st.subheader("📊 Análisis de Ancho de Cinta")
+st.subheader("📊 Resultados de Análisis Estructural")
 
-c1, c2, c3 = st.columns(3)
-with c1:
-    st.metric("Presión (q)", f"{p_viento} kgf/m²")
-with c2:
-    st.metric("Ancho Calculado", f"{ancho_cinta_calculado_mm:.2f} mm")
-with c3:
-    st.metric("Ancho Mínimo de Cinta Sugerido", f"{ancho_final} mm")
-
-
-
+# Bloque de Masa del Vidrio (se mantiene igual)
 st.markdown(f"""
-<div class="result-box">
-    <h3>✅ Especificación de la Unión:</h3>
-    <p style="font-size: 1.3em; margin-bottom: 0;">
-        <strong>Ancho de Cinta VHB Mínimo:</strong> <span style="color: #cc0000;">{ancho_final} mm</span>
-    </p>
-    <hr>
-    <strong>Notas Técnicas:</strong> 
-    <ul>
-        <li><strong>Bondline Width:</strong> El ancho calculado asegura que la cinta trabaje dentro de su rango elástico bajo ráfagas críticas.</li>
-        <li><strong>Factor de Seguridad:</strong> Se aplica un FS=5 sobre la capacidad de ruptura última.</li>
-        <li><strong>Carga Muerta:</strong> Esta cinta debe trabajar en conjunto con apoyos mecánicos (setting blocks) para el peso propio del panel.</li>
-    </ul>
+<div class="weight-box">
+    <p style="margin:5px 0; color:#555;">Peso Total del Vidrio: <strong>{peso_vidrio:.2f} kgf</strong></p>
+    <p style="font-size: 1.1em; margin:0; color:#28a745; font-weight:bold;">✅ Peso soportado por CALZOS (Setting Blocks)</p>
 </div>
 """, unsafe_allow_html=True)
+
+# Métricas de Ancho Mínimo de Cinta (se mantienen igual)
+c1, c2 = st.columns(2)
+with c1:
+    st.metric("Ancho (Viento)", f"{ancho_viento_mm:.2f} mm", help="Ancho de cinta requerido para resistir cargas de viento.")
+with c2:
+    st.metric("Ancho (Térmico)", f"{ancho_termico_mm:.2f} mm", help="Ancho de cinta requerido para absorber dilatación térmica.")
+
+# --- NUEVA SECCIÓN: FIGURA EXPLICATIVA Y ESPECIFICACIÓN TÉCNICA ---
+st.markdown("### 🔍 Detalles de la Junta de Cinta")
+col_fig, col_txt = st.columns([1, 1])
+
+with col_fig:
+    # Intenta cargar la imagen explicativa si existe
+    esquema_cinta = "cinta.png" # Asegúrate de que este archivo esté en tu GitHub
+    if os.path.exists(esquema_cinta):
+        st.image(esquema_cinta, caption="Nomenclatura Cinta VHB™", use_column_width=True)
+    else:
+        # Diagrama de referencia técnica si no hay imagen
+        st.info("💡 **Esquema Técnico:**\n\n"
+                "1. **Structural Bite:** Superficie de contacto de la cinta con el vidrio.\n"
+                "2. **Glueline Thickness:** Espesor de la cinta VHB™ (constante).\n"
+                "3. **Sustratos:** Vidrio y marco de aluminio.")
+
+with col_txt:
+    ancho_final_cinta = max(math.ceil(ancho_viento_mm), math.ceil(ancho_termico_mm), 6) # Mínimo constructivo 6mm
+
+    st.markdown(f"""
+    <div class="result-box" style="margin-top:0;">
+        <h3 style="margin-top:0;">✅ Especificación de Cinta Final:</h3>
+        <p style="font-size: 1.4em; margin-bottom:10px;">
+            <strong>Ancho Mínimo:</strong> <span style="color: #003366;">{ancho_final_cinta} mm</span><br>
+            <strong>Espesor de Cinta:</strong> <span style="color: #d9534f;">{gt_cinta} mm</span>
+        </p>
+        <hr>
+        <strong>Resumen Técnico:</strong>
+        <ul>
+            <li>Factor de Seguridad (FS): {fs_viento} para viento.</li>
+            <li>Glueline gobernado por: {'Viento' if ancho_viento_mm > ancho_termico_mm else 'Dilatación Térmica'}.</li>
+            <li>Uso obligatorio de setting blocks.</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
 
 # =================================================================
 # 6. GRÁFICO DE SENSIBILIDAD
