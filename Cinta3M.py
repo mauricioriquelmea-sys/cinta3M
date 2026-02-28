@@ -21,7 +21,7 @@ st.markdown("""
 # 2. ENCABEZADO
 # =================================================================
 st.title("🔴 Diseño de Unión con Cinta 3M™ VHB™")
-st.markdown("#### **Cálculo del Ancho de Cinta para Carga de Viento (FS = 5)**")
+st.markdown("#### **Cálculo del Ancho de Cinta para Carga de Viento**")
 st.divider()
 
 # =================================================================
@@ -78,7 +78,7 @@ with c3:
 
 st.markdown(f"""
 <div class="result-box">
-    <h3>✅ Especificación de la Unión (FS=5):</h3>
+    <h3>✅ Especificación de la Unión:</h3>
     <p style="font-size: 1.3em; margin-bottom: 0;">
         <strong>Ancho de Cinta VHB Mínimo:</strong> <span style="color: #cc0000;">{ancho_final} mm</span>
     </p>
