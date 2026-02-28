@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 import math
 import os
 
-# 1. CONFIGURACIÓN
+# =================================================================
+# 1. CONFIGURACIÓN Y ESTILO
+# =================================================================
 st.set_page_config(page_title="Cálculo VHB | Mauricio Riquelme", layout="wide")
 
 st.markdown("""
@@ -21,7 +23,9 @@ st.title("🔴 Diseño de Unión con Cinta 3M™ VHB™")
 st.markdown("#### **Ancho de Cinta (Bondline) según Carga de Viento y Dilatación**")
 st.divider()
 
-# 3. SIDEBAR
+# =================================================================
+# 2. SIDEBAR: PARÁMETROS DE DISEÑO
+# =================================================================
 st.sidebar.header("⚙️ Parámetros de Diseño")
 
 with st.sidebar.expander("📐 Geometría y Masa", expanded=True):
@@ -35,25 +39,37 @@ with st.sidebar.expander("🌪️ Viento y Térmico", expanded=True):
     p_viento = st.number_input("Presión de Diseño (kgf/m²)", value=150.0)
     delta_T = st.slider("Diferencial Térmico ΔT (°C)", 10, 80, 50)
     gt_cinta = st.selectbox("Espesor Cinta VHB (mm)", [1.1, 1.6, 2.3], index=1)
+    
+    # Parámetros fijos de seguridad 3M
+    FS_FIJO = 5.0
+    ancho_minimo_3m = 15.0
 
-# 4. MOTOR DE CÁLCULO
+# =================================================================
+# 3. MOTOR DE CÁLCULO
+# =================================================================
+
 # A. Peso del Vidrio
 peso_vidrio = (ancho_p * alto_p * (t_vidrio/1000)) * 2500
 
 # B. Ancho por Viento (Bondline Width)
-# Capacidad dinámica 3M: 85,000 Pa / FS 5 ≈ 1,734 kgf/m2 (aprox 12 psi admisible)
+# Capacidad dinámica 3M: 85,000 Pa. Esfuerzo admisible = 85,000 / 5 = 17,000 Pa ≈ 1734 kgf/m²
 adm_dinamico = 1734 
 ancho_viento_mm = (p_viento * lado_menor) / (2 * adm_dinamico) * 1000
 
 # C. Ancho por Dilatación Térmica (Regla del 15% de 3M)
-# ΔL = L * Δα * ΔT. La cinta debe ser al menos 6.7 veces el ΔL (para no superar 15% deformación)
-delta_L = (lado_mayor * 1000) * abs(23.2e-6 - 9.0e-6) * delta_T
+# Coeficientes de expansión (Aluminio vs Vidrio)
+alfa_al, alfa_vi = 23.2e-6, 9.0e-6
+delta_L = (lado_mayor * 1000) * abs(alfa_al - alfa_vi) * delta_T
+# El ancho debe ser tal que el delta_L no supere el 15% del espesor, 
+# pero 3M recomienda Bondline >= 6.7 * delta_L para seguridad técnica
 ancho_termico_mm = delta_L / 0.15 
 
-# Ancho Final
-ancho_final = max(math.ceil(ancho_viento_mm), math.ceil(ancho_termico_mm), 15)
+# Ancho Final (El mayor de todos, mínimo 15mm según 3M)
+ancho_final = max(math.ceil(ancho_viento_mm), math.ceil(ancho_termico_mm), ancho_minimo_3m)
 
-# 5. RESULTADOS
+# =================================================================
+# 4. DESPLIEGUE DE RESULTADOS
+# =================================================================
 st.subheader("📊 Resultados de Análisis Estructural")
 
 st.markdown(f"""
@@ -78,7 +94,8 @@ with col_fig:
     if os.path.exists("cinta.png"):
         st.image("cinta.png", caption="Nomenclatura Cinta VHB™", use_column_width=True)
     else:
-        st.info("💡 Sube 'cinta.png' para ver el esquema técnico.")
+        st.info("💡 Sube 'cinta.png' a la carpeta principal para ver el esquema técnico.")
+        
 
 with col_txt:
     st.markdown(f"""
@@ -86,31 +103,32 @@ with col_txt:
         <h3 style="margin-top:0;">✅ Especificación Final:</h3>
         <p style="font-size: 1.4em;">
             <strong>Ancho de Cinta:</strong> <span style="color: #cc0000;">{ancho_final} mm</span><br>
-            <strong>Modelo Sugerido:</strong> <span style="color: #003366;">VHB™ G23F o similar</span>
+            <strong>Espesor (gt):</strong> <span style="color: #003366;">{gt_cinta} mm</span>
         </p>
         <hr>
-        <strong>Resumen:</strong>
+        <strong>Resumen Técnico:</strong>
         <ul>
             <li>Gobernado por: {'Viento' if ancho_viento_mm > ancho_termico_mm else 'Dilatación Térmica'}.</li>
-            <li>Factor de Seguridad Dinámico: 5.0</li>
+            <li>Factor de Seguridad Dinámico: {FS_FIJO}</li>
+            <li>Capacidad Adm. Dinámica: {adm_dinamico} kgf/m²</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
 
-
 # =================================================================
-# 6. GRÁFICO DE SENSIBILIDAD
+# 5. GRÁFICO DE SENSIBILIDAD
 # =================================================================
 st.subheader("📈 Sensibilidad: Ancho de Cinta vs Presión de Viento")
 
 p_rango = np.linspace(50, 450, 30)
-# Re-calculamos el ancho para el rango del gráfico
 w_rango = [(p * lado_menor) / (2 * adm_dinamico) * 1000 for p in p_rango]
 
 fig, ax = plt.subplots(figsize=(12, 5))
-ax.plot(p_rango, w_rango, color='#cc0000', lw=2.5, label=f'Ancho Requerido (FS={FS_FIJO})')
-ax.axhline(ancho_minimo_3m, color='black', ls='--', label='Mínimo constructivo (15mm)')
-ax.fill_between(p_rango, w_rango, ancho_minimo_3m, where=(np.array(w_rango) > ancho_minimo_3m), color='#cc0000', alpha=0.1)
+ax.plot(p_rango, w_rango, color='#cc0000', lw=2.5, label=f'Requerido por Viento (FS={FS_FIJO})')
+ax.axhline(ancho_minimo_3m, color='black', ls='--', label=f'Mínimo 3M ({ancho_minimo_3m}mm)')
+ax.axhline(ancho_termico_mm, color='blue', ls=':', label=f'Mínimo Térmico ({ancho_termico_mm:.1f}mm)')
+
+ax.fill_between(p_rango, w_rango, ancho_minimo_3m, color='#cc0000', alpha=0.05)
 
 ax.set_xlabel("Presión de Diseño p (kgf/m²)")
 ax.set_ylabel("Ancho de Cinta (mm)")
@@ -119,7 +137,7 @@ ax.legend()
 st.pyplot(fig)
 
 # =================================================================
-# 7. CIERRE
+# 6. CIERRE
 # =================================================================
 st.markdown("---")
 st.markdown(f"""
