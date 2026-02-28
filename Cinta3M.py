@@ -21,72 +21,73 @@ st.markdown("""
 # 2. ENCABEZADO
 # =================================================================
 st.title("🔴 Diseño de Unión con Cinta 3M™ VHB™")
-st.markdown("#### **Verificación por Carga Dinámica (Viento) - FS = 5**")
+st.markdown("#### **Cálculo del Ancho de Cinta para Carga de Viento (FS = 5)**")
 st.divider()
 
 # =================================================================
-# 3. SIDEBAR: PARÁMETROS DE DISEÑO (SIN DUPLICADOS)
+# 3. SIDEBAR: PARÁMETROS DE DISEÑO
 # =================================================================
 st.sidebar.header("⚙️ Parámetros de Diseño")
 
 with st.sidebar.expander("📐 Geometría del Panel", expanded=True):
-    ancho = st.number_input("Ancho del Panel (m)", value=1.20, step=0.05)
-    alto = st.number_input("Alto del Panel (m)", value=2.40, step=0.05)
-    lado_menor = min(ancho, alto)
+    ancho_p = st.number_input("Ancho del Panel (m)", value=1.20, step=0.05)
+    alto_p = st.number_input("Alto del Panel (m)", value=2.40, step=0.05)
+    # El lado menor gobierna la transferencia de carga tributaria
+    lado_menor = min(ancho_p, alto_p)
 
 with st.sidebar.expander("🌪️ Carga de Viento y Seguridad", expanded=True):
     p_viento = st.number_input("Presión de Diseño (kgf/m²)", value=150.0)
     
-    # Factor de Seguridad constante y no editable
+    # Factor de Seguridad (FS) constante = 5
     FS_FIJO = 5.0
     st.markdown(f"**Factor de Seguridad (FS):** `{FS_FIJO}`")
     
-    # Capacidad última nominal VHB (aprox. 50 psi)
-    capacidad_ultima = 35150  # kgf/m²
+    # Capacidad última nominal de tracción dinámica VHB (aprox. 50 psi)
+    capacidad_ultima_kgm2 = 35150  
     
-    # Esfuerzo admisible derivado
-    adm_dinamico = capacidad_ultima / FS_FIJO
-    
+    # Esfuerzo admisible dinámico
+    adm_dinamico = capacidad_ultima_kgm2 / FS_FIJO
     st.info(f"Esfuerzo Adm. Dinámico: {adm_dinamico:.0f} kgf/m²")
 
 # =================================================================
-# 4. MOTOR DE CÁLCULO
+# 4. MOTOR DE CÁLCULO RIGUROSO
 # =================================================================
 
-# Cálculo del ancho de cinta necesario (mm)
-# (Presion * Lado_Menor) / (2 * Esfuerzo_Adm_en_cm2) * 10
-ancho_cinta_mm = (p_viento * lado_menor) / (2 * (adm_dinamico / 10000)) * 10 
+# Cálculo del ancho de cinta (Bondline Width) en mm
+# Fórmula: (Presion [kgf/m2] * Lado_Menor [m]) / (2 * Adm_Dinamico [kgf/m2]) * 1000 [mm/m]
+ancho_cinta_calculado_mm = (p_viento * lado_menor) / (2 * adm_dinamico) * 1000
 
-# Aplicación del mínimo constructivo de 15 mm
-ancho_final = max(math.ceil(ancho_cinta_mm), 15)
+# Mínimo recomendado por 3M para aplicaciones de fachada estructural
+ancho_minimo_3m = 15.0
+ancho_final = max(math.ceil(ancho_cinta_calculado_mm), ancho_minimo_3m)
 
 # =================================================================
 # 5. RESULTADOS
 # =================================================================
-st.subheader("📊 Resultados de Análisis Dinámico")
+st.subheader("📊 Análisis de Ancho de Cinta")
 
 c1, c2, c3 = st.columns(3)
 with c1:
-    st.metric("Presión (Carga)", f"{p_viento} kgf/m²")
+    st.metric("Presión (q)", f"{p_viento} kgf/m²")
 with c2:
-    st.metric("Ancho Calculado", f"{ancho_cinta_mm:.2f} mm")
+    st.metric("Ancho Calculado", f"{ancho_cinta_calculado_mm:.2f} mm")
 with c3:
-    st.metric("Bite Sugerido", f"{ancho_final} mm")
+    st.metric("Ancho de Cinta Sugerido", f"{ancho_final} mm")
 
 
 
 st.markdown(f"""
 <div class="result-box">
-    <h3>✅ Especificación Técnica (FS=5):</h3>
+    <h3>✅ Especificación de la Unión (FS=5):</h3>
     <p style="font-size: 1.3em; margin-bottom: 0;">
-        <strong>Ancho de Cinta VHB Requerido:</strong> <span style="color: #cc0000;">{ancho_final} mm</span>
+        <strong>Ancho de Cinta VHB Mínimo:</strong> <span style="color: #cc0000;">{ancho_final} mm</span>
     </p>
     <hr>
-    <strong>Notas de Seguridad:</strong> 
+    <strong>Notas Técnicas:</strong> 
     <ul>
-        <li>Factor de Seguridad Aplicado: <strong>{FS_FIJO}</strong> (Estándar de alta exigencia).</li>
-        <li>Este diseño solo verifica la carga de viento; requiere apoyos para carga muerta.</li>
-        <li>Capacidad última considerada: {capacidad_ultima} kgf/m².</li>
+        <li><strong>Bondline Width:</strong> El ancho calculado asegura que la cinta trabaje dentro de su rango elástico bajo ráfagas críticas.</li>
+        <li><strong>Factor de Seguridad:</strong> Se aplica un FS=5 sobre la capacidad de ruptura última.</li>
+        <li><strong>Carga Muerta:</strong> Esta cinta debe trabajar en conjunto con apoyos mecánicos (setting blocks) para el peso propio del panel.</li>
     </ul>
 </div>
 """, unsafe_allow_html=True)
@@ -97,12 +98,13 @@ st.markdown(f"""
 st.subheader("📈 Sensibilidad: Ancho de Cinta vs Presión de Viento")
 
 p_rango = np.linspace(50, 450, 30)
-b_rango = [(p * lado_menor) / (2 * (adm_dinamico / 10000)) * 10 for p in p_rango]
+# Re-calculamos el ancho para el rango del gráfico
+w_rango = [(p * lado_menor) / (2 * adm_dinamico) * 1000 for p in p_rango]
 
 fig, ax = plt.subplots(figsize=(12, 5))
-ax.plot(p_rango, b_rango, color='#cc0000', lw=2.5, label=f'Curva de Diseño (FS={FS_FIJO})')
-ax.axhline(15, color='black', ls='--', label='Mínimo Constructivo (15mm)')
-ax.fill_between(p_rango, b_rango, 15, where=(np.array(b_rango) > 15), color='#cc0000', alpha=0.1)
+ax.plot(p_rango, w_rango, color='#cc0000', lw=2.5, label=f'Ancho Requerido (FS={FS_FIJO})')
+ax.axhline(ancho_minimo_3m, color='black', ls='--', label='Mínimo constructivo (15mm)')
+ax.fill_between(p_rango, w_rango, ancho_minimo_3m, where=(np.array(w_rango) > ancho_minimo_3m), color='#cc0000', alpha=0.1)
 
 ax.set_xlabel("Presión de Diseño p (kgf/m²)")
 ax.set_ylabel("Ancho de Cinta (mm)")
