@@ -53,7 +53,6 @@ with st.sidebar.expander("🌪️ Cargas y Factores de Seguridad", expanded=True
     usa_calzos = st.checkbox("¿Usa calzos de apoyo?", value=True)
     
     st.markdown("---")
-    # INFORMACIÓN DE FACTORES DE SEGURIDAD (FS)
     st.markdown("**Factores de Seguridad (FS) 3M:**")
     st.info("""
     * **Dinámico (Viento):** FS = 5.0
@@ -61,12 +60,12 @@ with st.sidebar.expander("🌪️ Cargas y Factores de Seguridad", expanded=True
     """)
     
     # VALORES ESTRICTOS 3M
-    # Dinámico (Viento)
-    adm_viento_kpa = 85.0  # Incluye FS=5
-    adm_viento_kgm2 = 85.0 * 101.97  # Conv. kPa a kgf/m2
+    # Dinámico (Viento): 85.0 kPa
+    adm_viento_kpa = 85.0
+    adm_viento_kgm2 = 85.0 * 101.97
     
-    # Estático (Peso/Cizalle)
-    adm_peso_kpa = 1.7  # Incluye FS=10
+    # Estático (Peso/Cizalle): 1.7 kPa
+    adm_peso_kpa = 1.7
     adm_peso_kgm2 = 1.7 * 101.97
     
     ancho_minimo_3m = 15.0
@@ -88,7 +87,7 @@ if not usa_calzos:
 else:
     ancho_peso_mm = 0.0
 
-# Ancho Final (Gobernado por el mayor)
+# Ancho Final
 ancho_calculado = max(ancho_viento_mm, ancho_peso_mm, ancho_minimo_3m)
 ancho_final = math.ceil(ancho_calculado)
 
@@ -105,6 +104,9 @@ st.markdown(f"""
     </p>
 </div>
 """, unsafe_allow_html=True)
+
+if not usa_calzos:
+    st.error("🚨 **REQUERIMIENTO OBLIGATORIO:** Todo proyecto donde la cinta VHB™ soporte carga muerta (sin calzos) DEBE ser revisado y aprobado por el Servicio Técnico de 3M Chile antes de su ejecución.")
 
 c1, c2, c3 = st.columns(3)
 with c1:
@@ -125,6 +127,7 @@ with col_fig:
         st.image("cinta.png", caption="Detalle Bondline Width (Bite)", use_column_width=True)
     else:
         st.info("💡 Sube 'cinta.png' para ver el esquema técnico.")
+        
 
 with col_txt:
     st.markdown(f"""
@@ -139,7 +142,7 @@ with col_txt:
             <li>Criterio Dominante: <strong>{'Viento (Dinámico)' if ancho_viento_mm > ancho_peso_mm else 'Peso (Estático)'}</strong>.</li>
             <li>Esfuerzo Adm. Viento: 85.0 kPa (FS=5).</li>
             <li>Esfuerzo Adm. Peso: 1.7 kPa (FS=10).</li>
-            <li>{"Uso de calzos obligatorio." if usa_calzos else "Apto para cizalladura permanente."}</li>
+            <li>{"Uso de calzos obligatorio." if usa_calzos else "Configuración sin calzos: Requiere aprobación de 3M."}</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
